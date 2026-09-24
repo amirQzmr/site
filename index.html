@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PsyThread - Психология. Люди. Возможности.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bgMain: '#FDFBF7',
+                        cardBg: '#FFFFFF',
+                        primaryPink: '#FAD4DC',
+                        deepPink: '#E8A5B2',
+                        accentOrange: '#FFC8B8',
+                        textDark: '#2D2926',
+                        textMuted: '#8C857E',
+                        borderLight: '#F2ECE4'
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #EFECE6;
+            color: #2D2926;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Контейнер для мобильного режима без черной рамки */
+        .mobile-device-view {
+            max-width: 430px;
+            height: 90vh;
+            max-height: 900px;
+            border-radius: 36px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center bg-[#EFECE6] p-0 sm:p-4">
+
+    <!-- ДИНАМИЧЕСКИЙ КОНТЕЙНЕР -->
+    <div id="app-root" class="w-full flex-1 flex flex-col">
+        <!-- Контент вставляется автоматически -->
+    </div>
+
+    <!-- MODAL OVERLAY -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-all opacity-0">
+        <div id="modal-content" class="bg-cardBg w-full max-w-md rounded-3xl p-6 shadow-2xl transform scale-95 transition-all">
+            <!-- Dynamic content -->
+        </div>
+    </div>
+
+    <script>
+        const appContentHTML = `
+            <header class="bg-cardBg border-b border-borderLight px-6 sm:px-8 py-3.5 flex justify-between items-center sticky top-0 z-40 shadow-sm shrink-0">
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="location.href='index.html'">
+                    <div class="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-primaryPink to-accentOrange text-textDark shadow-sm">
+                        <i class="fa-solid fa-brain text-lg"></i>
+                        <span class="absolute -top-1 -right-1 text-amber-500 text-xs animate-pulse">✨</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight text-textDark flex items-center gap-1">
+                            PsyThread
+                            <span class="text-amber-400 text-sm">✦</span>
+                        </h1>
+                        <p class="text-[11px] text-textMuted font-medium">Психология. Люди. Возможности.</p>
+                    </div>
+                </div>
+
+                <div class="w-72 md:w-96 relative hidden lg:block">
+                    <input type="text" placeholder="Поиск по публикациям, психологам и тегам..." class="w-full pl-9 pr-4 py-2 rounded-full border border-borderLight bg-bgMain text-xs focus:outline-none focus:border-deepPink transition">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-textMuted text-xs"></i>
+                </div>
+
+                <div class="flex items-center space-x-3 text-textDark">
+                    <button onclick="openCreatePostModal()" class="hidden sm:flex items-center space-x-2 px-4 py-2 bg-gradient-to-tr from-accentOrange to-primaryPink text-textDark rounded-full text-xs font-bold shadow-sm hover:opacity-90 transition">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Новая публикация</span>
+                    </button>
+                    <button onclick="openNotifications()" class="w-10 h-10 rounded-full bg-bgMain flex items-center justify-center shadow-sm relative hover:bg-primaryPink/50 transition">
+                        <i class="fa-regular fa-bell text-sm"></i>
+                        <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-deepPink rounded-full"></span>
+                    </button>
+                </div>
+            </header>
+
+            <div id="main-view-body" class="flex-1 flex justify-center w-full overflow-y-auto hide-scrollbar"></div>
+
+            <nav id="mobile-bottom-nav" class="hidden bg-white/95 backdrop-blur-md border-t border-borderLight px-6 py-2.5 justify-between items-center z-30 shadow-lg shrink-0">
+                <button onclick="location.href='page.html'" class="flex flex-col items-center text-textMuted hover:text-textDark transition group">
+                    <i class="fa-regular fa-user text-lg group-hover:scale-110 transition"></i>
+                    <span class="text-[10px] font-medium mt-1">Личный кабинет</span>
+                </button>
+                <button onclick="switchNavTab(this, 'recommendations')" class="flex flex-col items-center text-deepPink transition group">
+                    <i class="fa-solid fa-compass text-lg group-hover:scale-110 transition"></i>
+                    <span class="text-[10px] font-bold mt-1">Рекомендации</span>
+                </button>
+                <button onclick="openCreatePostModal()" class="w-12 h-12 rounded-full bg-gradient-to-tr from-accentOrange to-primaryPink text-textDark flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition -mt-5 border-4 border-bgMain">
+                    <i class="fa-solid fa-plus text-base font-bold"></i>
+                </button>
+                <button onclick="switchNavTab(this, 'chats')" class="flex flex-col items-center text-textMuted hover:text-textDark transition group relative">
+                    <i class="fa-regular fa-comment-dots text-lg group-hover:scale-110 transition"></i>
+                    <span class="absolute -top-0.5 right-1 w-2 h-2 bg-deepPink rounded-full"></span>
+                    <span class="text-[10px] font-medium mt-1">Чаты</span>
+                </button>
+            </nav>
+        `;
+
+        const feedContentHTML = `
+            <section class="bg-cardBg rounded-3xl p-4 shadow-sm border border-borderLight/60 mb-4">
+                <div class="flex space-x-4 overflow-x-auto hide-scrollbar">
+                    <div class="flex flex-col items-center flex-shrink-0 cursor-pointer group" onclick="openAddStoryModal()">
+                        <div class="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-primaryPink to-deepPink flex items-center justify-center relative shadow-sm group-hover:scale-105 transition">
+                            <div class="w-full h-full rounded-full bg-white flex items-center justify-center relative overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" alt="Your Story" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                    <div class="w-7 h-7 rounded-full bg-deepPink text-white flex items-center justify-center shadow-md">
+                                        <i class="fa-solid fa-plus text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-medium text-textDark mt-1.5 truncate max-w-[64px]">Ваша история</span>
+                    </div>
+
+                    <div class="flex flex-col items-center flex-shrink-0 cursor-pointer group" onclick="viewStory('aialum')">
+                        <div class="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-deepPink to-purple-500 flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                            <div class="w-full h-full rounded-full bg-white p-[2px]">
+                                <img src="https://placehold.co/100x100/E8A5B2/ffffff?text=AI" alt="aialum" class="w-full h-full rounded-full object-cover">
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-medium text-textDark mt-1.5 truncate max-w-[64px]">aialum</span>
+                    </div>
+
+                    <div class="flex flex-col items-center flex-shrink-0 cursor-pointer group" onclick="viewStory('psychology_kz')">
+                        <div class="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-deepPink to-purple-500 flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                            <div class="w-full h-full rounded-full bg-white p-[2px]">
+                                <img src="https://placehold.co/100x100/FFC8B8/2D2926?text=PK" alt="psychology_kz" class="w-full h-full rounded-full object-cover">
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-medium text-textDark mt-1.5 truncate max-w-[64px]">psychology_kz</span>
+                    </div>
+
+                    <div class="flex flex-col items-center flex-shrink-0 cursor-pointer group" onclick="viewStory('studywithme')">
+                        <div class="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-deepPink to-purple-500 flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                            <div class="w-full h-full rounded-full bg-white p-[2px]">
+                                <img src="https://placehold.co/100x100/FAD4DC/2D2926?text=SW" alt="studywithme" class="w-full h-full rounded-full object-cover">
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-medium text-textDark mt-1.5 truncate max-w-[64px]">studywithme</span>
+                    </div>
+
+                    <div class="flex flex-col items-center flex-shrink-0 cursor-pointer group" onclick="viewStory('motivation')">
+                        <div class="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-deepPink to-purple-500 flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                            <div class="w-full h-full rounded-full bg-white p-[2px] flex items-center justify-center bg-primaryPink/40 text-deepPink font-bold text-[10px] text-center leading-tight">
+                                Better Days ♡
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-medium text-textDark mt-1.5 truncate max-w-[64px]">motivation</span>
+                    </div>
+                </div>
+            </section>
+
+            <div class="flex space-x-2 overflow-x-auto hide-scrollbar py-1 mb-4">
+                <button onclick="switchTab(this, 'recommendations')" class="tab-btn px-5 py-2 rounded-full text-xs font-semibold bg-primaryPink text-textDark shadow-sm transition">Рекомендации</button>
+                <button onclick="switchTab(this, 'news')" class="tab-btn px-5 py-2 rounded-full text-xs font-semibold bg-cardBg text-textMuted border border-borderLight hover:bg-primaryPink/20 transition">Новости</button>
+                <button onclick="switchTab(this, 'research')" class="tab-btn px-5 py-2 rounded-full text-xs font-semibold bg-cardBg text-textMuted border border-borderLight hover:bg-primaryPink/20 transition">Исследования</button>
+                <button onclick="switchTab(this, 'events')" class="tab-btn px-5 py-2 rounded-full text-xs font-semibold bg-cardBg text-textMuted border border-borderLight hover:bg-primaryPink/20 transition">События</button>
+            </div>
+
+            <!-- КОНТЕЙНЕР ЛЕНТЫ -->
+            <div id="posts-container" class="space-y-4">
+                <!-- Динамические посты будут подгружаться сюда вместе со стандартными -->
+            </div>
+        `;
+
+        // Базовые статические посты (Аватарка Алии заменена на вашу фотографию)
+        const defaultPosts = [
+            {
+                id: 'default-1',
+                author: 'American Psychological Association',
+                tag: 'APA',
+                time: '2 ч. назад',
+                isVerified: true,
+                content: '<p class="font-semibold mb-1 flex items-center gap-1.5"><span>📄</span> Новое исследование: сон и психическое здоровье</p><p class="text-textDark/90">Учёные из APA опубликовали результаты масштабного исследования, которое подтверждает: качественный сон значительно снижает уровень тревожности и депрессии. Психологи отмечают, что улучшение сна может быть эффективным дополнением к терапии.</p>',
+                hasCard: true,
+                cardTitle: 'The role of sleep in mental health and well-being',
+                cardSource: 'apa.org',
+                likes: 842,
+                comments: 36,
+                reposts: 54,
+                deletable: false
+            },
+            {
+                id: 'default-2',
+                author: 'Алия',
+                tag: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', // запасная строка
+                time: '3 ч. назад',
+                isVerified: false,
+                subtext: '1 курс · КазҰУ · Психодиагностика 🌱',
+                content: '<p>Бүгін университетте <strong>психодиагностика сабағында</strong> қызықты тақырып өтті. Адамның жеке тұлғасын анықтауда қандай әдістер сіздерге көбірек қызықты? 🤔</p>',
+                hasCard: false,
+                likes: 45,
+                comments: 12,
+                reposts: 0,
+                deletable: false,
+                isCustomAvatar: true,
+                avatarUrl: 'https://lh3.googleusercontent.com/a/ACg8ocL2H_d2t9c1x1p2x3y4z5a6b7c8d9e0f1g2h3i4j5k6l7m8n9=s512-c' // Ссылка на вашу загруженную картинку[cite: 3]
+            }
+        ];
+
+        function getStoredPosts() {
+            const saved = localStorage.getItem('psythread_user_posts');
+            if (saved) {
+                try { return JSON.parse(saved); } catch (e) { return []; }
+            }
+            return [];
+        }
+
+        function saveStoredPosts(posts) {
+            localStorage.setItem('psythread_user_posts', JSON.stringify(posts));
+        }
+
+        function renderPosts() {
+            const container = document.getElementById('posts-container');
+            if (!container) return;
+
+            const userPosts = getStoredPosts();
+            const allPosts = [...userPosts, ...defaultPosts];
+
+            container.innerHTML = allPosts.map(post => `
+                <article class="bg-cardBg rounded-3xl p-6 shadow-sm border border-borderLight/60 relative" id="post-${post.id}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center space-x-3">
+                            ${post.isVerified ? `
+                                <div class="w-11 h-11 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold shadow-sm">
+                                    <span class="text-xs tracking-tighter">${post.tag}</span>
+                                </div>
+                            ` : post.isCustomAvatar ? `
+                                <div class="relative">
+                                    <img src="${post.avatarUrl}" class="w-11 h-11 rounded-full object-cover shadow-sm border-2 border-primaryPink">
+                                    <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-rose-400 border-2 border-white rounded-full flex items-center justify-center text-[8px] text-white font-bold">+</span>
+                                </div>
+                            ` : `
+                                <div class="relative">
+                                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" class="w-11 h-11 rounded-full object-cover shadow-sm border-2 border-primaryPink">
+                                    <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-rose-400 border-2 border-white rounded-full flex items-center justify-center text-[8px] text-white font-bold">+</span>
+                                </div>
+                            `}
+                            <div>
+                                <div class="flex items-center space-x-1.5">
+                                    <h3 class="font-bold text-sm text-textDark">${post.author}</h3>
+                                    ${post.isVerified ? '<svg class="w-4 h-4 text-rose-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>' : ''}
+                                </div>
+                                <p class="text-[11px] text-textMuted">${post.subtext || post.time}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="relative">
+                            <button onclick="togglePostMenu('${post.id}')" class="text-textMuted hover:text-textDark p-1"><i class="fa-solid fa-ellipsis"></i></button>
+                            <div id="menu-${post.id}" class="hidden absolute right-0 top-8 bg-white border border-borderLight shadow-lg rounded-2xl py-1.5 w-36 z-20 text-xs">
+                                ${post.deletable ? `<button onclick="deletePost('${post.id}')" class="w-full px-4 py-2 text-left text-rose-500 hover:bg-rose-50 flex items-center space-x-2"><i class="fa-solid fa-trash-can"></i><span>Удалить</span></button>` : ''}
+                                <button onclick="sharePost(); togglePostMenu('${post.id}')" class="w-full px-4 py-2 text-left text-textDark hover:bg-bgMain flex items-center space-x-2"><i class="fa-regular fa-paper-plane"></i><span>Поделиться</span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 text-sm text-textDark leading-relaxed">
+                        ${post.content}
+                    </div>
+
+                    ${post.hasCard ? `
+                        <div onclick="openLinkModal('${post.cardTitle}', '${post.cardSource}')" class="mt-4 bg-[#FFF8F6] rounded-2xl overflow-hidden border border-amber-100 flex items-center cursor-pointer hover:bg-orange-50/50 transition">
+                            <div class="w-32 h-24 shrink-0 overflow-hidden bg-amber-100"><img src="https://placehold.co/200x200/FEE2D5/C2410C?text=Sleep+Study" class="w-full h-full object-cover"></div>
+                            <div class="p-4 flex-1 min-w-0">
+                                <h4 class="text-xs font-bold text-textDark leading-snug line-clamp-2">${post.cardTitle}</h4>
+                                <p class="text-[10px] text-textMuted mt-1">${post.cardSource}</p>
+                            </div>
+                            <div class="pr-5 text-textMuted"><i class="fa-solid fa-arrow-right text-xs"></i></div>
+                        </div>
+                    ` : ''}
+
+                    <div class="mt-5 pt-3 border-t border-borderLight/60 flex items-center justify-between text-textMuted text-xs">
+                        <button onclick="toggleLike(this)" class="flex items-center space-x-1.5 hover:text-rose-500 transition group">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-rose-50 transition"><i class="fa-regular fa-heart text-sm"></i></div>
+                            <span class="font-medium">${post.likes}</span>
+                        </button>
+                        <button onclick="openComments('${post.author}')" class="flex items-center space-x-1.5 hover:text-blue-500 transition group">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-blue-50 transition"><i class="fa-regular fa-comment text-sm"></i></div>
+                            <span class="font-medium">${post.comments}</span>
+                        </button>
+                        <button onclick="repostPost(this)" class="flex items-center space-x-1.5 hover:text-emerald-500 transition group">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-emerald-50 transition"><i class="fa-solid fa-retweet text-sm"></i></div>
+                            ${post.reposts > 0 ? `<span class="font-medium">${post.reposts}</span>` : ''}
+                        </button>
+                        <button onclick="sharePost()" class="flex items-center space-x-1.5 hover:text-amber-500 transition group">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-amber-50 transition"><i class="fa-regular fa-paper-plane text-sm"></i></div>
+                        </button>
+                    </div>
+                </article>
+            `).join('') + `
+                <div class="bg-gradient-to-r from-amber-50 via-primaryPink/25 to-orange-50 rounded-3xl p-5 border border-amber-200/50 shadow-sm flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600 text-xl shrink-0 shadow-inner"><i class="fa-solid fa-lightbulb"></i></div>
+                        <div>
+                            <h4 class="text-xs font-bold text-textDark">Сізге ұсыныс</h4>
+                            <p class="text-[11px] text-textMuted mt-0.5 leading-snug">Психология саласындағы жаңа зерттеулер мен іс-шаралар</p>
+                        </div>
+                    </div>
+                    <button onclick="openRecommendationAction()" class="px-5 py-2.5 bg-deepPink hover:bg-rose-400 text-white rounded-full text-xs font-semibold shadow-sm transition shrink-0 ml-3">Қарау</button>
+                </div>
+            `;
+        }
+
+        function togglePostMenu(id) {
+            const menu = document.getElementById(`menu-${id}`);
+            document.querySelectorAll('[id^="menu-"]').forEach(m => {
+                if (m.id !== `menu-${id}`) m.classList.add('hidden');
+            });
+            menu.classList.toggle('hidden');
+        }
+
+        function deletePost(id) {
+            let userPosts = getStoredPosts();
+            userPosts = userPosts.filter(p => p.id !== id);
+            saveStoredPosts(userPosts);
+            renderPosts();
+            showToast('Публикация удалена 🗑️');
+        }
+
+        function initDeviceLayout() {
+            const root = document.getElementById('app-root');
+            const isDesktop = window.innerWidth >= 1024;
+
+            root.innerHTML = appContentHTML;
+            const bodyContainer = document.getElementById('main-view-body');
+            const mobileNav = document.getElementById('mobile-bottom-nav');
+
+            if (isDesktop) {
+                root.classList.remove('mobile-device-view', 'bg-bgMain', 'overflow-hidden');
+                mobileNav.classList.add('hidden');
+                mobileNav.classList.remove('flex');
+
+                bodyContainer.innerHTML = `
+                    <div class="max-w-7xl mx-auto w-full grid grid-cols-4 gap-6 p-6">
+                        <aside class="col-span-1 space-y-4">
+                            <div class="bg-cardBg rounded-3xl p-5 shadow-sm border border-borderLight/60 sticky top-24">
+                                <div class="flex items-center space-x-3 pb-4 border-b border-borderLight cursor-pointer" onclick="location.href='page.html'">
+                                    <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primaryPink shrink-0">
+                                        <img src="https://lh3.googleusercontent.com/a/ACg8ocL2H_d2t9c1x1p2x3y4z5a6b7c8d9e0f1g2h3i4j5k6l7m8n9=s512-c" class="w-full h-full object-cover">
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-sm text-textDark">Алия</h3>
+                                        <p class="text-[11px] text-textMuted">@aliya</p>
+                                    </div>
+                                </div>
+                                <nav class="mt-4 space-y-1">
+                                    <button onclick="switchNavTab(this, 'recommendations')" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-2xl text-xs font-bold text-deepPink bg-primaryPink/40 transition">
+                                        <i class="fa-solid fa-compass text-base w-5"></i><span>Рекомендации</span>
+                                    </button>
+                                    <button onclick="location.href='page.html'" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-2xl text-xs font-semibold text-textMuted hover:bg-bgMain hover:text-textDark transition">
+                                        <i class="fa-regular fa-user text-base w-5"></i><span>Личный кабинет</span>
+                                    </button>
+                                    <button onclick="switchNavTab(this, 'chats')" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-2xl text-xs font-semibold text-textMuted hover:bg-bgMain hover:text-textDark transition relative">
+                                        <i class="fa-regular fa-comment-dots text-base w-5"></i><span>Чаты</span>
+                                        <span class="ml-auto w-2 h-2 bg-deepPink rounded-full"></span>
+                                    </button>
+                                </nav>
+                            </div>
+                        </aside>
+
+                        <main class="col-span-2 space-y-5">
+                            ${feedContentHTML}
+                        </main>
+
+                        <aside class="col-span-1 space-y-4">
+                            <div class="bg-cardBg rounded-3xl p-5 shadow-sm border border-borderLight/60 sticky top-24 space-y-4">
+                                <h3 class="font-bold text-xs text-textDark flex items-center justify-between">
+                                    <span>Популярные теги</span>
+                                    <i class="fa-solid fa-fire text-amber-500"></i>
+                                </h3>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <span onclick="showToast('Выбран тег #тревожность')" class="px-3 py-1 bg-primaryPink/30 hover:bg-primaryPink/60 text-textDark text-[11px] rounded-full cursor-pointer transition">#тревожность</span>
+                                    <span onclick="showToast('Выбран тег #сон')" class="px-3 py-1 bg-primaryPink/30 hover:bg-primaryPink/60 text-textDark text-[11px] rounded-full cursor-pointer transition">#сон</span>
+                                    <span onclick="showToast('Выбран тег #терапия')" class="px-3 py-1 bg-primaryPink/30 hover:bg-primaryPink/60 text-textDark text-[11px] rounded-full cursor-pointer transition">#терапия</span>
+                                    <span onclick="showToast('Выбран тег #выгорание')" class="px-3 py-1 bg-primaryPink/30 hover:bg-primaryPink/60 text-textDark text-[11px] rounded-full cursor-pointer transition">#выгорание</span>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                `;
+            } else {
+                root.classList.add('mobile-device-view', 'bg-bgMain');
+                mobileNav.classList.remove('hidden');
+                mobileNav.classList.add('flex');
+
+                bodyContainer.innerHTML = `
+                    <div class="w-full px-4 py-3 space-y-4">
+                        ${feedContentHTML}
+                    </div>
+                `;
+            }
+            renderPosts();
+        }
+
+        window.addEventListener('DOMContentLoaded', initDeviceLayout);
+        window.addEventListener('resize', () => {
+            const isDesktopNow = window.innerWidth >= 1024;
+            if (window._wasDesktop !== isDesktopNow) {
+                window._wasDesktop = isDesktopNow;
+                initDeviceLayout();
+            }
+        });
+        window._wasDesktop = window.innerWidth >= 1024;
+
+        function switchNavTab(btn, tabName) {
+            if(tabName === 'profile') {
+                location.href = 'page.html';
+            } else if(tabName === 'chats') {
+                showModal('Сообщения и Чаты', '<div class="space-y-3 py-2"><div class="flex items-center space-x-3 p-2.5 hover:bg-bgMain rounded-2xl cursor-pointer"><img src="https://placehold.co/100x100/FAD4DC/2D2926?text=AI" class="w-10 h-10 rounded-full object-cover"><div><h4 class="text-xs font-bold">aialum</h4><p class="text-[11px] text-textMuted">Рахмет сізге, кеңес үшін!</p></div></div><div class="flex items-center space-x-3 p-2.5 hover:bg-bgMain rounded-2xl cursor-pointer"><img src="https://placehold.co/100x100/FFC8B8/2D2926?text=PK" class="w-10 h-10 rounded-full object-cover"><div><h4 class="text-xs font-bold">Интервизорская группа</h4><p class="text-[11px] text-textMuted">Завтра в 19:00 встреча...</p></div></div><button onclick="closeModal()" class="mt-4 w-full py-2 bg-textDark text-white rounded-full text-xs font-semibold">Закрыть</button></div>');
+            } else {
+                showToast(`Переход в раздел: ${tabName}`);
+            }
+        }
+
+        function toggleLike(btn) {
+            const icon = btn.querySelector('i');
+            const countSpan = btn.querySelector('span');
+            let count = parseInt(countSpan.innerText);
+            
+            if(icon.classList.contains('fa-regular')) {
+                icon.classList.remove('fa-regular');
+                icon.classList.add('fa-solid', 'text-rose-500');
+                btn.querySelector('div').classList.add('bg-rose-50');
+                countSpan.innerText = count + 1;
+                showToast('Вам понравился пост ❤️');
+            } else {
+                icon.classList.remove('fa-solid', 'text-rose-500');
+                icon.classList.add('fa-regular');
+                btn.querySelector('div').classList.remove('bg-rose-50');
+                countSpan.innerText = count - 1;
+            }
+        }
+
+        function repostPost(btn) { showToast('Пост успешно добавлен в вашу ленту (репост)! 🔄'); }
+        function sharePost() { showToast('Ссылка на публикацию скопирована в буфер обмена 📋'); }
+
+        function viewStory(username) {
+            showModal(`История: @${username}`, `
+                <div class="relative rounded-2xl overflow-hidden bg-slate-900 h-80 flex items-center justify-center text-white">
+                    <img src="https://placehold.co/400x600/E8A5B2/ffffff?text=Story+${username}" class="absolute inset-0 w-full h-full object-cover opacity-80">
+                    <div class="absolute top-3 left-3 flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-white text-textDark font-bold flex items-center justify-center text-xs">@</div>
+                        <span class="text-xs font-bold drop-shadow">${username}</span>
+                    </div>
+                    <div class="absolute bottom-4 left-4 right-4 text-center">
+                        <p class="text-xs font-medium drop-shadow-md">Психологические инсайты дня 🧠✨</p>
+                    </div>
+                </div>
+                <button onclick="closeModal()" class="mt-4 w-full py-2.5 bg-deepPink text-white rounded-full text-xs font-semibold">Закрыть историю</button>
+            `);
+        }
+
+        function openAddStoryModal() {
+            showModal('Добавить историю', `
+                <div class="text-center py-4">
+                    <div class="w-20 h-20 rounded-2xl bg-primaryPink/50 border-2 border-dashed border-deepPink mx-auto flex items-center justify-center text-deepPink text-xl mb-3">
+                        <i class="fa-solid fa-camera"></i>
+                    </div>
+                    <p class="text-xs text-textMuted">Загрузите фото или запишите свой статус для коллег</p>
+                    <input type="file" class="hidden" id="story-file">
+                    <button onclick="document.getElementById('story-file').click()" class="mt-4 px-5 py-2 bg-textDark text-white rounded-full text-xs font-semibold">Выбрать файл</button>
+                    <button onclick="closeModal()" class="mt-2 w-full py-2.5 text-textMuted text-xs font-semibold">Отмена</button>
+                </div>
+            `);
+        }
+
+        // --- СОЗДАНИЕ И СОХРАНЕНИЕ ПОСТА ---
+        function openCreatePostModal() {
+            showModal('Новая публикация', `
+                <div class="space-y-3">
+                    <textarea id="post-input-text" rows="4" placeholder="Поделитесь мыслями, кейсом или вопросом с сообществом..." class="w-full p-3 rounded-2xl border border-borderLight bg-bgMain text-xs focus:outline-none focus:border-deepPink"></textarea>
+                    <div class="flex justify-between items-center text-xs text-textMuted">
+                        <div class="flex space-x-2">
+                            <button class="p-2 hover:bg-bgMain rounded-full"><i class="fa-regular fa-image text-deepPink"></i></button>
+                            <button class="p-2 hover:bg-bgMain rounded-full"><i class="fa-solid fa-link text-deepPink"></i></button>
+                        </div>
+                        <span class="text-[10px]">PsyThread Community</span>
+                    </div>
+                    <button onclick="submitNewPost()" class="w-full py-2.5 bg-deepPink hover:bg-rose-400 text-white rounded-full text-xs font-semibold shadow-md transition">Опубликовать</button>
+                </div>
+            `);
+        }
+
+        function submitNewPost() {
+            const textarea = document.getElementById('post-input-text');
+            const text = textarea ? textarea.value.trim() : '';
+
+            if(!text) {
+                showToast('Пожалуйста, введите текст публикации');
+                return;
+            }
+
+            const newPost = {
+                id: 'post-' + Date.now(),
+                author: 'Алия',
+                tag: '',
+                time: 'Только что',
+                isVerified: false,
+                isCustomAvatar: true,
+                avatarUrl: 'https://lh3.googleusercontent.com/a/ACg8ocL2H_d2t9c1x1p2x3y4z5a6b7c8d9e0f1g2h3i4j5k6l7m8n9=s512-c',
+                subtext: '1 курс · КазҰУ · Психодиагностика 🌱',
+                content: `<p>${text.replace(/\n/g, '<br>')}</p>`,
+                hasCard: false,
+                likes: 0,
+                comments: 0,
+                reposts: 0,
+                deletable: true
+            };
+
+            const userPosts = getStoredPosts();
+            userPosts.unshift(newPost);
+            saveStoredPosts(userPosts);
+
+            renderPosts();
+            closeModal();
+            showToast('Публикация успешно размещена! 🎉');
+        }
+
+        function openNotifications() {
+            showModal('Уведомления', `
+                <div class="space-y-3 py-1">
+                    <div class="flex items-start space-x-3 p-2 bg-primaryPink/20 rounded-2xl">
+                        <div class="w-8 h-8 rounded-full bg-deepPink text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-heart"></i></div>
+                        <div><p class="text-xs font-semibold text-textDark">aialum оценила ваш пост</p><p class="text-[10px] text-textMuted">15 минут назад</p></div>
+                    </div>
+                    <div class="flex items-start space-x-3 p-2 hover:bg-bgMain rounded-2xl">
+                        <div class="w-8 h-8 rounded-full bg-amber-200 text-amber-700 flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-user-plus"></i></div>
+                        <div><p class="text-xs font-semibold text-textDark">Dana подписалась на вас</p><p class="text-[10px] text-textMuted">1 час назад</p></div>
+                    </div>
+                    <button onclick="closeModal()" class="mt-2 w-full py-2 bg-textDark text-white rounded-full text-xs font-semibold">Закрыть</button>
+                </div>
+            `);
+        }
+
+        function openLinkModal(title, source) {
+            showModal(source, `
+                <div class="space-y-3">
+                    <h3 class="font-bold text-sm text-textDark">${title}</h3>
+                    <p class="text-xs text-textMuted leading-relaxed">Полный текст научной публикации доступен на официальном портале APA. Исследование охватило более 10,000 участников.</p>
+                    <div class="pt-2 flex space-x-2">
+                        <a href="#" onclick="alert('Переход на сторонний ресурс'); return false;" class="flex-1 py-2.5 bg-deepPink text-white rounded-full text-xs font-semibold text-center">Открыть сайт</a>
+                        <button onclick="closeModal()" class="px-4 py-2.5 bg-bgMain text-textDark rounded-full text-xs font-semibold">Назад</button>
+                    </div>
+                </div>
+            `);
+        }
+
+        function openRecommendationAction() {
+            showModal('Рекомендации дня', `
+                <div class="space-y-3">
+                    <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 text-xl mx-auto"><i class="fa-solid fa-lightbulb"></i></div>
+                    <h3 class="font-bold text-sm text-textDark text-center">Психологический практикум</h3>
+                    <p class="text-xs text-textMuted text-center leading-relaxed">Запланированы мастер-классы и новые открытые вебинары по когнитивно-поведенческой терапии.</p>
+                    <button onclick="closeModal(); showToast('Вы подписались на обновление событий! 🌟')" class="w-full py-2.5 bg-deepPink text-white rounded-full text-xs font-semibold shadow-md">Участвовать</button>
+                </div>
+            `);
+        }
+
+        function openComments(postName) {
+            showModal(`Комментарии (${postName})`, `
+                <div class="space-y-3 max-h-60 overflow-y-auto pr-1">
+                    <div class="flex items-start space-x-2.5 text-xs">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" class="w-7 h-7 rounded-full object-cover">
+                        <div class="bg-bgMain p-3 rounded-2xl flex-1"><span class="font-bold">Dana:</span> Очень актуальная тема для практики! Спасибо за материал.</div>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-borderLight flex items-center space-x-2">
+                    <input type="text" placeholder="Написать комментарий..." class="flex-1 py-2 px-3 rounded-full border border-borderLight bg-bgMain text-xs focus:outline-none focus:border-deepPink">
+                    <button onclick="showToast('Комментарий отправлен! 💬'); closeModal();" class="w-9 h-9 rounded-full bg-deepPink text-white flex items-center justify-center shrink-0"><i class="fa-solid fa-arrow-up text-xs"></i></button>
+                </div>
+            `);
+        }
+
+        function showModal(title, htmlContent) {
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            
+            content.innerHTML = `
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-borderLight">
+                    <h3 class="font-bold text-sm text-textDark">${title}</h3>
+                    <button onclick="closeModal()" class="text-textMuted hover:text-textDark"><i class="fa-solid fa-xmark text-sm"></i></button>
+                </div>
+                ${htmlContent}
+            `;
+            
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            overlay.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => overlay.classList.add('hidden'), 200);
+        }
+
+        function showToast(message) {
+            const existingToast = document.getElementById('toast-notification');
+            if(existingToast) existingToast.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'toast-notification';
+            toast.className = 'fixed top-16 left-1/2 transform -translate-x-1/2 bg-textDark text-bgMain text-xs px-4 py-2.5 rounded-full shadow-lg z-50 transition-all opacity-0 flex items-center space-x-2 font-medium';
+            toast.innerHTML = `<span>✨</span><span>${message}</span>`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.classList.remove('opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+    </script>
+</body>
+</html>

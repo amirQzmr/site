@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет - Алия</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bgMain: '#FDFBF7',
+                        cardBg: '#FFFFFF',
+                        primaryPink: '#FAD4DC',
+                        deepPink: '#E8A5B2',
+                        accentOrange: '#FFC8B8',
+                        textDark: '#2D2926',
+                        textMuted: '#8C857E',
+                        borderLight: '#F2ECE4'
+                    },
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #EFECE6; color: #2D2926; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .mobile-device-view { max-width: 430px; height: 90vh; max-height: 900px; border-radius: 36px; overflow: hidden; box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center bg-[#EFECE6] p-0 sm:p-4">
+
+    <div id="app-root" class="w-full flex-1 flex flex-col"></div>
+
+    <div id="modal-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-all opacity-0">
+        <div id="modal-content" class="bg-cardBg w-full max-w-md rounded-3xl p-6 shadow-2xl transform scale-95 transition-all"></div>
+    </div>
+
+    <script>
+        const appShellHTML = `
+            <header class="bg-cardBg border-b border-borderLight px-6 sm:px-8 py-3.5 flex justify-between items-center sticky top-0 z-40 shadow-sm shrink-0">
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="location.href='index.html'">
+                    <div class="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-primaryPink to-accentOrange text-textDark shadow-sm">
+                        <i class="fa-solid fa-brain text-lg"></i>
+                        <span class="absolute -top-1 -right-1 text-amber-500 text-xs animate-pulse">✨</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight text-textDark flex items-center gap-1">
+                            PsyThread <span class="text-amber-400 text-sm">✦</span>
+                        </h1>
+                        <p class="text-[11px] text-textMuted font-medium">Психология. Люди. Возможности.</p>
+                    </div>
+                </div>
+
+                <div class="w-72 md:w-96 relative hidden lg:block">
+                    <input type="text" placeholder="Поиск по публикациям, психологам и тегам..." class="w-full pl-9 pr-4 py-2 rounded-full border border-borderLight bg-bgMain text-xs focus:outline-none focus:border-deepPink transition">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-textMuted text-xs"></i>
+                </div>
+
+                <div class="flex items-center space-x-3 text-textDark">
+                    <button onclick="openCreatePostModal()" class="hidden sm:flex items-center space-x-2 px-4 py-2 bg-gradient-to-tr from-accentOrange to-primaryPink text-textDark rounded-full text-xs font-bold shadow-sm hover:opacity-90 transition">
+                        <i class="fa-solid fa-plus"></i><span>Новая публикация</span>
+                    </button>
+                    <button onclick="showModal('Уведомления', '<p class=\\'text-xs text-textMuted\\'>Нет новых уведомлений</p>')" class="w-10 h-10 rounded-full bg-bgMain flex items-center justify-center shadow-sm relative hover:bg-primaryPink/50 transition">
+                        <i class="fa-regular fa-bell text-sm"></i>
+                        <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-deepPink rounded-full"></span>
+                    </button>
+                </div>
+            </header>
+
+            <div id="main-view-body" class="flex-1 flex justify-center w-full overflow-y-auto hide-scrollbar"></div>
+
+            <nav id="mobile-bottom-nav" class="hidden bg-white/95 backdrop-blur-md border-t border-borderLight px-6 py-2.5 justify-between items-center z-30 shadow-lg shrink-0">
+                <button onclick="location.href='page.html'" class="flex flex-col items-center text-deepPink font-bold transition group">
+                    <i class="fa-regular fa-user text-lg group-hover:scale-110 transition"></i>
+                    <span class="text-[10px] mt-1">Личный кабинет</span>
+                </button>
+                <button onclick="location.href='index.html'" class="flex flex-col items-center text-textMuted hover:text-textDark transition group">
+                    <i class="fa-solid fa-compass text-lg group-hover:scale-110 transition"></i>
+                    <span class="text-[10px] mt-1">Рекомендации</span>
+                </button>
+                <button onclick="openCreatePostModal()" class="w-12 h-12 rounded-full bg-gradient-to-tr from-accentOrange to-primaryPink text-textDark flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition -mt-5 border-4 border-bgMain">
+                    <i class="fa-solid fa-plus text-base font-bold"></i>
+                </button>
+                <button onclick="showModal('Чаты', '<p class=\\'text-xs text-textMuted\\'>Нет новых сообщений</p>')" class="flex flex-col items-center text-textMuted hover:text-textDark transition group relative">
+                    <i class="fa-regular fa-comment-dots text-lg group-hover:scale-110 transition"></i>
+                    <span class="absolute -top-0.5 right-1 w-2 h-2 bg-deepPink rounded-full"></span>
+                    <span class="text-[10px] mt-1">Чаты</span>
+                </button>
+            </nav>
+        `;
+
+        const profileContentHTML = `
+            <div class="w-full px-5 py-5 space-y-4 max-w-xl mx-auto">
+                <div class="bg-cardBg rounded-3xl p-6 shadow-sm border border-borderLight/60 space-y-4">
+                    <div class="flex justify-between items-start">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" alt="Алия" class="w-20 h-20 rounded-full object-cover shadow-md border-2 border-primaryPink">
+                            <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-deepPink text-white rounded-full flex items-center justify-center text-xs shadow"><i class="fa-solid fa-plus text-[10px]"></i></div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="showModal('Настройки', '<p class=\\'text-xs text-textMuted\\'>Настройки аккаунта</p>')" class="w-9 h-9 rounded-full bg-bgMain flex items-center justify-center text-textMuted hover:text-textDark transition"><i class="fa-solid fa-ellipsis"></i></button>
+                            <button onclick="showModal('Редактирование', '<p class=\\'text-xs text-textMuted\\'>Изменить данные профиля</p>')" class="px-4 py-2 bg-primaryPink/60 hover:bg-primaryPink text-textDark rounded-full text-xs font-bold transition">Редакциялау</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center space-x-1.5">
+                            <h2 class="text-lg font-bold text-textDark">Алия</h2>
+                            <svg class="w-4 h-4 text-rose-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        </div>
+                        <p class="text-xs text-textMuted">@aliya</p>
+                    </div>
+
+                    <div class="text-xs text-textDark space-y-0.5">
+                        <p class="font-medium">Болашақ психолог | КазҰУ, 1 курс</p>
+                        <p class="text-textMuted">Психодиагностика · Психология тұлғасы · Нейропсихология</p>
+                        <p class="text-textMuted flex items-center gap-1 mt-1"><i class="fa-solid fa-location-dot text-[10px]"></i> Алматы, Қазақстан</p>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 pt-2 border-t border-borderLight text-center">
+                        <div><div class="font-bold text-sm text-textDark">156</div><div class="text-[10px] text-textMuted">жазылушылар</div></div>
+                        <div><div class="font-bold text-sm text-textDark" id="posts-count">24</div><div class="text-[10px] text-textMuted">жарияланым</div></div>
+                        <div><div class="font-bold text-sm text-textDark">12</div><div class="text-[10px] text-textMuted">жазылым</div></div>
+                    </div>
+                </div>
+
+                <div class="bg-primaryPink/30 border border-primaryPink rounded-2xl p-3.5 flex items-center justify-between text-xs text-textDark cursor-pointer hover:bg-primaryPink/50 transition">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-deepPink/30 flex items-center justify-center text-deepPink"><i class="fa-solid fa-handshake"></i></div>
+                        <div><p class="text-[10px] text-textMuted">Қазір сіздің статусыңыз:</p><p class="font-bold">1-курс студенті</p></div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-textMuted text-xs"></i>
+                </div>
+
+                <div class="flex space-x-2 overflow-x-auto hide-scrollbar py-1">
+                    <button class="px-4 py-1.5 rounded-full text-xs font-bold bg-primaryPink text-textDark shadow-sm">Жарияланымдар</button>
+                    <button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-cardBg text-textMuted border border-borderLight">Туралы</button>
+                    <button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-cardBg text-textMuted border border-borderLight">Құпиялылық</button>
+                    <button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-cardBg text-textMuted border border-borderLight">Суреттер</button>
+                </div>
+
+                <div id="profile-posts-container" class="space-y-4">
+                    <!-- Посты подгружаются динамически -->
+                </div>
+            </div>
+        `;
+
+        // Статический дефолтный пост профиля
+        const defaultProfilePosts = [
+            {
+                id: 'prof-default-1',
+                author: 'Алия',
+                time: '2 күн бұрын',
+                content: 'Бүгін психодиагностика сабағында қызықты тақырып өтті. Тұлғаның мінез-құлқына әсер ететін негізгі факторлар туралы айтып берді. Сіздер үшін ең қызықты диагностикалық әдіс қандай?',
+                likes: 45,
+                deletable: false
+            }
+        ];
+
+        function getStoredProfilePosts() {
+            const saved = localStorage.getItem('psythread_aliya_profile_posts');
+            if (saved) {
+                try { return JSON.parse(saved); } catch (e) { return []; }
+            }
+            return [];
+        }
+
+        function saveStoredProfilePosts(posts) {
+            localStorage.setItem('psythread_aliya_profile_posts', JSON.stringify(posts));
+        }
+
+        function renderProfilePosts() {
+            const container = document.getElementById('profile-posts-container');
+            if (!container) return;
+
+            const userPosts = getStoredProfilePosts();
+            const allPosts = [...userPosts, ...defaultProfilePosts];
+
+            // Обновляем счетчик постов
+            const counter = document.getElementById('posts-count');
+            if (counter) {
+                counter.innerText = 23 + allPosts.length;
+            }
+
+            container.innerHTML = allPosts.map(post => `
+                <article class="bg-cardBg rounded-3xl p-5 shadow-sm border border-borderLight/60 relative" id="prof-post-${post.id}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center space-x-3">
+                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" class="w-10 h-10 rounded-full object-cover">
+                            <div><h3 class="font-bold text-xs text-textDark">${post.author}</h3><p class="text-[10px] text-textMuted">${post.time}</p></div>
+                        </div>
+                        ${post.deletable ? `
+                            <div class="relative">
+                                <button onclick="toggleProfileMenu('${post.id}')" class="text-textMuted hover:text-textDark p-1"><i class="fa-solid fa-ellipsis"></i></button>
+                                <div id="prof-menu-${post.id}" class="hidden absolute right-0 top-8 bg-white border border-borderLight shadow-lg rounded-2xl py-1.5 w-36 z-20 text-xs">
+                                    <button onclick="deleteProfilePost('${post.id}')" class="w-full px-4 py-2 text-left text-rose-500 hover:bg-rose-50 flex items-center space-x-2"><i class="fa-solid fa-trash-can"></i><span>Удалить</span></button>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="mt-2.5 text-xs text-textDark leading-relaxed">
+                        ${post.content.replace(/\n/g, '<br>')}
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-borderLight/60 flex items-center justify-between text-textMuted text-xs">
+                        <button onclick="toggleLike(this)" class="flex items-center space-x-1.5 hover:text-rose-500"><i class="fa-regular fa-heart"></i><span>${post.likes}</span></button>
+                        <button onclick="showModal('Комментарии', '<p class=\\'text-xs text-textMuted\\'>Обсуждение темы</p>')" class="flex items-center space-x-1.5 hover:text-blue-500"><i class="fa-regular fa-comment"></i><span>12</span></button>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        function toggleProfileMenu(id) {
+            const menu = document.getElementById(`prof-menu-${id}`);
+            document.querySelectorAll('[id^="prof-menu-"]').forEach(m => {
+                if (m.id !== `prof-menu-${id}`) m.classList.add('hidden');
+            });
+            menu.classList.toggle('hidden');
+        }
+
+        function deleteProfilePost(id) {
+            let userPosts = getStoredProfilePosts();
+            userPosts = userPosts.filter(p => p.id !== id);
+            saveStoredProfilePosts(userPosts);
+            renderProfilePosts();
+            showToast('Публикация удалена 🗑️');
+        }
+
+        function initApp() {
+            const root = document.getElementById('app-root');
+            const isDesktop = window.innerWidth >= 1024;
+            root.innerHTML = appShellHTML;
+            const bodyContainer = document.getElementById('main-view-body');
+            const mobileNav = document.getElementById('mobile-bottom-nav');
+
+            if (isDesktop) {
+                root.classList.remove('mobile-device-view', 'bg-bgMain', 'overflow-hidden');
+                mobileNav.classList.add('hidden');
+                mobileNav.classList.remove('flex');
+                bodyContainer.innerHTML = `
+                    <div class="max-w-7xl mx-auto w-full grid grid-cols-4 gap-6 p-6">
+                        <aside class="col-span-1 space-y-4">
+                            <div class="bg-cardBg rounded-3xl p-5 shadow-sm border border-borderLight/60 sticky top-24">
+                                <div class="flex items-center space-x-3 pb-4 border-b border-borderLight cursor-pointer" onclick="location.href='page.html'">
+                                    <div class="w-12 h-12 bg-primaryPink rounded-full flex items-center justify-center text-lg font-bold text-textDark">П</div>
+                                    <div><h3 class="font-bold text-sm text-textDark">Психолог Плюс</h3><p class="text-[11px] text-textMuted">@psycholog_plus</p></div>
+                                </div>
+                                <nav class="mt-4 space-y-1">
+                                    <button onclick="location.href='index.html'" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-2xl text-xs font-semibold text-textMuted hover:bg-bgMain"><i class="fa-solid fa-compass text-base w-5"></i><span>Рекомендации</span></button>
+                                    <button onclick="location.href='page.html'" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-2xl text-xs font-bold text-deepPink bg-primaryPink/40"><i class="fa-regular fa-user text-base w-5"></i><span>Личный кабинет</span></button>
+                                </nav>
+                            </div>
+                        </aside>
+                        <main class="col-span-2 space-y-5">${profileContentHTML}</main>
+                        <aside class="col-span-1 space-y-4">
+                            <div class="bg-cardBg rounded-3xl p-5 shadow-sm border border-borderLight/60 sticky top-24">
+                                <h3 class="font-bold text-xs text-textDark mb-3">О профиле</h3>
+                                <p class="text-[11px] text-textMuted leading-relaxed">Страница пользователя Алия в социальной сети PsyThread.</p>
+                            </div>
+                        </aside>
+                    </div>
+                `;
+            } else {
+                root.classList.add('mobile-device-view', 'bg-bgMain');
+                mobileNav.classList.remove('hidden');
+                mobileNav.classList.add('flex');
+                bodyContainer.innerHTML = profileContentHTML;
+            }
+            renderProfilePosts();
+        }
+
+        window.addEventListener('DOMContentLoaded', initApp);
+        window.addEventListener('resize', () => {
+            const isDesktopNow = window.innerWidth >= 1024;
+            if (window._wasDesktop !== isDesktopNow) {
+                window._wasDesktop = isDesktopNow;
+                initApp();
+            }
+        });
+        window._wasDesktop = window.innerWidth >= 1024;
+
+        // --- ЛОГИКА СОЗДАНИЯ ПОСТА В ПРОФИЛЕ ---
+        function openCreatePostModal() {
+            showModal('Новая публикация', `
+                <div class="space-y-3">
+                    <textarea id="profile-post-text" rows="4" placeholder="Поделитесь мыслями с сообществом..." class="w-full p-3 rounded-2xl border border-borderLight bg-bgMain text-xs focus:outline-none focus:border-deepPink"></textarea>
+                    <button onclick="submitProfilePost()" class="w-full py-2.5 bg-deepPink hover:bg-rose-400 text-white rounded-full text-xs font-semibold shadow-md transition">Опубликовать</button>
+                </div>
+            `);
+        }
+
+        function submitProfilePost() {
+            const textarea = document.getElementById('profile-post-text');
+            const text = textarea ? textarea.value.trim() : '';
+            if (!text) {
+                showToast('Введите текст публикации');
+                return;
+            }
+
+            const newPost = {
+                id: 'prof-' + Date.now(),
+                author: 'Алия',
+                time: 'Только что',
+                content: text,
+                likes: 0,
+                deletable: true
+            };
+
+            const userPosts = getStoredProfilePosts();
+            userPosts.unshift(newPost);
+            saveStoredProfilePosts(userPosts);
+
+            renderProfilePosts();
+            closeModal();
+            showToast('Публикация успешно размещена! 🎉');
+        }
+
+        function toggleLike(btn) {
+            const icon = btn.querySelector('i');
+            const span = btn.querySelector('span');
+            let count = parseInt(span.innerText);
+            if(icon.classList.contains('fa-regular')) {
+                icon.classList.remove('fa-regular');
+                icon.classList.add('fa-solid', 'text-rose-500');
+                span.innerText = count + 1;
+            } else {
+                icon.classList.remove('fa-solid', 'text-rose-500');
+                icon.classList.add('fa-regular');
+                span.innerText = count - 1;
+            }
+        }
+
+        function showModal(title, content) {
+            document.getElementById('modal-content').innerHTML = `
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-borderLight">
+                    <h3 class="font-bold text-sm text-textDark">${title}</h3>
+                    <button onclick="closeModal()" class="text-textMuted hover:text-textDark"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                ${content}
+            `;
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 200);
+        }
+
+        function showToast(message) {
+            const existing = document.getElementById('toast');
+            if(existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.id = 'toast';
+            toast.className = 'fixed top-16 left-1/2 transform -translate-x-1/2 bg-textDark text-bgMain text-xs px-4 py-2.5 rounded-full shadow-lg z-50 transition-all opacity-0 font-medium';
+            toast.innerHTML = `✨ ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.classList.remove('opacity-0'), 10);
+            setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 300); }, 2500);
+        }
+    </script>
+</body>
+</html>
